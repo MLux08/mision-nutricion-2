@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg-dark: #070913;
-            --card-bg: rgba(15, 23, 42, 0.85);
+            --card-bg: rgba(15, 23, 42, 0.88);
             --cyber-cyan: #00f3ff;
             --cyber-purple: #bc13fe;
             --cyber-green: #00ff66;
@@ -295,15 +295,23 @@
         }
 
         .select-custom {
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid var(--cyber-cyan);
-            color: var(--text-main);
-            padding: 10px;
+            background: #0f172a;
+            border: 2px solid var(--cyber-cyan);
+            color: #f1f5f9;
+            padding: 12px 14px;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 1.05rem;
             font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
             width: 100%;
             outline: none;
+            cursor: pointer;
+        }
+
+        .select-custom option {
+            background-color: #0f172a;
+            color: #f1f5f9;
+            padding: 10px;
         }
 
         .cyber-btn {
@@ -398,7 +406,7 @@
         <div class="stat-box">⭐ XP: <span id="xp-val" class="stat-value">0</span></div>
         <div class="stat-box">🏆 Rango: <span id="rank-val" class="stat-value" style="color:var(--cyber-cyan);">Recluta</span></div>
     </div>
-    <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()">🔊 MÚSICA ON</button>
+    <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()">🎵 MÚSICA ON</button>
 </div>
 
 <div class="game-wrapper">
@@ -437,11 +445,11 @@
 </div>
 
 <script>
-// Nombres de archivos de imágenes adjuntas en el proyecto
+// RUTA DE IMÁGENES
 const IMAGES = {
     respiratorio: "3a3d0c94bb970b7c1dc99f34b9515d38.jpg",
-    circulatorio: "OIP_(2).webp",
-    corazon_flujo: "OIP_(3).webp",
+    circulatorio: "OIP (2).webp",
+    corazon_flujo: "OIP (3).webp",
     digestivo_mudo: "dI-aE53X2yz3yHF0zeBUOg_b.jpg",
     corazon_detalle: "m_Hop002_Fig_68-01.webp",
     digestivo_color: "image-92.webp"
@@ -450,8 +458,8 @@ const IMAGES = {
 const PRAISE_MSGS = [
     "🌟 ¡Excelente trabajo! Tu maestra Mª Luz está súper orgullosa de tu avance. ¡Sigue así, recluta!",
     "👏 ¡Impresionante deducción! La maestra Mª Luz dice: '¡Así se investiga con rigor científico!'",
-    "🎉 ¡Respuesta perfecta! Mª Luz manda un gran aplauso virtual a tu esfuerzo.",
-    "🚀 ¡Conocimiento bio-médico al máximo! Maestra Mª Luz te otorga una estrella dorada virtual."
+    "🎉 ¡Respuesta perfecta! Mª Luz manda un gran aplauso virtual a tu esfuerzo y dedicación.",
+    "🚀 ¡Conocimiento bio-médico al máximo! La maestra Mª Luz te otorga una estrella dorada virtual."
 ];
 
 const ENCOURAGE_MSGS = [
@@ -461,56 +469,90 @@ const ENCOURAGE_MSGS = [
     "🚀 ¡No te rindas! Revisa la pista de Mª Luz y verás qué claro lo ves ahora."
 ];
 
-let audioCtx = null, bgmGain = null, isAudioPlaying = false, bgmOsc1 = null, bgmOsc2 = null;
+// MÚSICA CONTINUA (WEB AUDIO API)
+let audioCtx = null, bgmGain = null, isAudioPlaying = false, bgmTimer = null;
+const notes = [220, 261.63, 329.63, 392.00, 440, 523.25, 659.25];
 
 function initAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 }
 
 function toggleAudio() {
     initAudio();
     const btn = document.getElementById('audio-toggle');
     if (!isAudioPlaying) {
-        startBGM(); btn.textContent = "🔊 MÚSICA ON"; isAudioPlaying = true;
+        isAudioPlaying = true;
+        startBGM();
+        btn.textContent = "🎵 MÚSICA ON";
     } else {
-        stopBGM(); btn.textContent = "🔇 MÚSICA OFF"; isAudioPlaying = false;
+        isAudioPlaying = false;
+        stopBGM();
+        btn.textContent = "🔇 MÚSICA OFF";
     }
 }
 
 function startBGM() {
     if (!audioCtx) return;
+    if (bgmTimer) clearInterval(bgmTimer);
+
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    bgmGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     bgmGain.connect(audioCtx.destination);
-    bgmOsc1 = audioCtx.createOscillator();
-    bgmOsc2 = audioCtx.createOscillator();
-    bgmOsc1.type = 'sine'; bgmOsc2.type = 'triangle';
-    bgmOsc1.frequency.setValueAtTime(110, audioCtx.currentTime);
-    bgmOsc2.frequency.setValueAtTime(164.81, audioCtx.currentTime);
-    bgmOsc1.connect(bgmGain); bgmOsc2.connect(bgmGain);
-    bgmOsc1.start(); bgmOsc2.start();
+
+    let noteIdx = 0;
+    bgmTimer = setInterval(() => {
+        if (!isAudioPlaying || !audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+        osc.type = (noteIdx % 2 === 0) ? 'sine' : 'triangle';
+        
+        const freq = notes[noteIdx % notes.length];
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        noteGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+        osc.connect(noteGain);
+        noteGain.connect(bgmGain);
+
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.6);
+
+        noteIdx++;
+    }, 450);
 }
 
 function stopBGM() {
-    if (bgmOsc1) bgmOsc1.stop(); if (bgmOsc2) bgmOsc2.stop();
+    if (bgmTimer) {
+        clearInterval(bgmTimer);
+        bgmTimer = null;
+    }
 }
 
 function playSfx(type) {
     if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
     const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
+
     if (type === 'correct') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         osc.start(); osc.stop(audioCtx.currentTime + 0.3);
     } else if (type === 'wrong') {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(220, audioCtx.currentTime);
         osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         osc.start(); osc.stop(audioCtx.currentTime + 0.3);
     } else if (type === 'levelup') {
@@ -523,9 +565,9 @@ function playSfx(type) {
     }
 }
 
-// Batería completa de 40 Desafíos pedagógicos
+// BATERÍA COMPLETA DE PREGUNTAS (40 DESAFÍOS)
 const QUEST_DATA = [
-    // NIVEL 1
+    // NIVEL 1: CONCEPTOS
     { id: "m1_q1", mission: 1, idx: 1, type: "mc", title: "Diferencia entre Nutrición y Alimentación", text: "¿Cuál es la afirmación correcta sobre la nutrición humana?", options: ["La nutrición es solo masticar y tragar los alimentos.", "La nutrición engloba la digestión, respiración, circulación y excreción.", "La alimentación es un proceso involuntario de las células."], correct: 1, explain: "¡Exacto! La nutrición es el conjunto de procesos (digestión, respiración, circulación y excreción) mediante los cuales obtenemos energía y materiales de los alimentos." },
     { id: "m1_q2", mission: 1, idx: 2, type: "mc", title: "Las Vías Respiratorias", text: "¿Qué tubo conduce el aire desde la laringe hacia los dos bronquios?", options: ["La tráquea", "El esófago", "El uréter"], correct: 0, explain: "¡Correcto! La tráquea es un tubo rígido formado por anillos de cartílago que se divide en dos bronquios para llegar a cada pulmón." },
     { id: "m1_q3", mission: 1, idx: 3, type: "mc", title: "Componentes de la Sangre", text: "¿Qué células sanguíneas contienen hemoglobina y transportan el oxígeno?", options: ["Glóbulos blancos", "Plaquetas", "Glóbulos rojos"], correct: 2, explain: "¡Excelente! Los glóbulos rojos contienen la proteína hemoglobina, que se une al oxígeno para llevarlo a todas las células." },
@@ -537,19 +579,19 @@ const QUEST_DATA = [
     { id: "m1_q9", mission: 1, idx: 9, type: "mc", title: "Excreción por la Piel", text: "¿Qué glándulas de la piel se encargan de producir el sudor?", options: ["Glándulas salivales", "Glándulas sudoríparas", "Glándulas renales"], correct: 1, explain: "¡Correcto! Las glándulas sudoríparas filtran la sangre de la piel expulsando sudor para eliminar desechos y regular la temperatura." },
     { id: "m1_q10", mission: 1, idx: 10, type: "mc", title: "Nutrición Celular", text: "¿Para qué utilizan el oxígeno y los nutrientes las células de nuestro cuerpo?", options: ["Para producir energía y reparar estructuras.", "Únicamente para fabricar saliva.", "Para expulsar aire por la nariz."], correct: 0, explain: "¡Fantástico! Las células combinan nutrientes con oxígeno en la respiración celular para obtener la energía vital." },
 
-    // NIVEL 2
-    { id: "m2_q1", mission: 2, idx: 1, type: "match", title: "Clasificación de Células Sanguíneas", text: "Relaciona cada componente con su función principal:", pairs: [{ key: "Glóbulos Rojos", correct: "Transporte de oxígeno" }, { key: "Glóbulos Blancos", correct: "Defensa contra gérmenes" }, { key: "Plaquetas", correct: "Taponar heridas (coagulación)" }], optionsList: ["Transporte de oxígeno", "Defensa contra gérmenes", "Taponar heridas (coagulación)"], explain: "¡Perfecto! Los glóbulos rojos transportan O2, los blancos combaten infecciones y las plaquetas forman coágulos." },
-    { id: "m2_q2", mission: 2, idx: 2, type: "match", title: "Vasos Sanguíneos y sus Estructuras", text: "Empareja cada vaso con su propiedad:", pairs: [{ key: "Arterias", correct: "Salen del corazón con paredes gruesas" }, { key: "Venas", correct: "Llevan la sangre de vuelta con válvulas" }, { key: "Capilares", correct: "Vasos ultrafinos de intercambio" }], optionsList: ["Salen del corazón con paredes gruesas", "Llevan la sangre de vuelta con válvulas", "Vasos ultrafinos de intercambio"], explain: "¡Excelente clasificación! Las arterias aguantan gran presión, las venas evitan el retroceso y los capilares permiten la difusión." },
-    { id: "m2_q3", mission: 2, idx: 3, type: "match", title: "Aparato Urinario y sus Partes", text: "Relaciona el órgano urinario con su tarea:", pairs: [{ key: "Riñones", correct: "Filtrar la sangre y formar orina" }, { key: "Vejiga", correct: "Almacenar la orina hasta expulsarla" }, { key: "Uretra", correct: "Conducto de salida al exterior" }], optionsList: ["Filtrar la sangre y formar orina", "Almacenar la orina hasta expulsarla", "Conducto de salida al exterior"], explain: "¡Gran trabajo! Los riñones fabrican la orina, la vejiga la almacena acumulando líquido y la uretra la expulsa." },
-    { id: "m2_q4", mission: 2, idx: 4, type: "match", title: "Fases de la Digestión", text: "Relaciona la etapa digestiva con la mezcla resultante:", pairs: [{ key: "Boca + Saliva", correct: "Bolo alimenticio" }, { key: "Estómago + Jugo gástrico", correct: "Quimo" }, { key: "Intestino delgado + Bilis/Jugo", correct: "Quilo" }], optionsList: ["Bolo alimenticio", "Quimo", "Quilo"], explain: "¡Muy bien! El bolo se forma en la boca, se transforma en quimo en el estómago y finalmente en quilo en el intestino delgado." },
+    // NIVEL 2: CLASIFICACIÓN
+    { id: "m2_q1", mission: 2, idx: 1, type: "match", title: "Clasificación de Células Sanguíneas", text: "Relaciona cada componente sanguíneo con su función vital:", pairs: [{ key: "Glóbulos Rojos", correct: "Transporte de oxígeno" }, { key: "Glóbulos Blancos", correct: "Defensa contra gérmenes" }, { key: "Plaquetas", correct: "Taponar heridas (coagulación)" }], optionsList: ["Transporte de oxígeno", "Defensa contra gérmenes", "Taponar heridas (coagulación)"], explain: "¡Perfecto! Los glóbulos rojos transportan O2, los blancos combaten infecciones y las plaquetas forman coágulos." },
+    { id: "m2_q2", mission: 2, idx: 2, type: "match", title: "Vasos Sanguíneos y sus Estructuras", text: "Empareja cada vaso sanguíneo con su propiedad principal:", pairs: [{ key: "Arterias", correct: "Salen del corazón con paredes gruesas" }, { key: "Venas", correct: "Llevan la sangre de vuelta con válvulas" }, { key: "Capilares", correct: "Vasos ultrafinos de intercambio" }], optionsList: ["Salen del corazón con paredes gruesas", "Llevan la sangre de vuelta con válvulas", "Vasos ultrafinos de intercambio"], explain: "¡Excelente clasificación! Las arterias aguantan gran presión, las venas evitan el retroceso y los capilares permiten la difusión." },
+    { id: "m2_q3", mission: 2, idx: 3, type: "match", title: "Aparato Urinario y sus Partes", text: "Relaciona el órgano urinario con su tarea correspondiente:", pairs: [{ key: "Riñones", correct: "Filtrar la sangre y formar orina" }, { key: "Vejiga", correct: "Almacenar la orina hasta expulsarla" }, { key: "Uretra", correct: "Conducto de salida al exterior" }], optionsList: ["Filtrar la sangre y formar orina", "Almacenar la orina hasta expulsarla", "Conducto de salida al exterior"], explain: "¡Gran trabajo! Los riñones fabrican la orina, la vejiga la almacena acumulando líquido y la uretra la expulsa." },
+    { id: "m2_q4", mission: 2, idx: 4, type: "match", title: "Fases de la Digestión", text: "Relaciona la etapa digestiva con la mezcla que produce:", pairs: [{ key: "Boca + Saliva", correct: "Bolo alimenticio" }, { key: "Estómago + Jugo gástrico", correct: "Quimo" }, { key: "Intestino + Bilis/Jugo", correct: "Quilo" }], optionsList: ["Bolo alimenticio", "Quimo", "Quilo"], explain: "¡Muy bien! El bolo se forma en la boca, se transforma en quimo en el estómago y finalmente en quilo en el intestino delgado." },
     { id: "m2_q5", mission: 2, idx: 5, type: "mc", title: "Movimientos Respiratorios", text: "Durante la INSPIRACIÓN, ¿qué ocurre con el diafragma y los pulmones?", options: ["El diafragma se contrae y baja, el tórax se expande y entra aire.", "El diafragma se relaja y sube, el tórax se estrecha y sale aire.", "Los pulmones se vacían sin moverse."], correct: 0, explain: "¡Correcto! Al inspirar, el diafragma baja aumentando el volumen torácico, creando succión para que entre el aire ambiental." },
     { id: "m2_q6", mission: 2, idx: 6, type: "mc", title: "Circuitos Sanguíneos", text: "¿Cuál es la meta de la CIRCULACIÓN PULMONAR (o menor)?", options: ["Llevar nutrientes al cerebro y las piernas.", "Llevar sangre del corazón a los pulmones para oxigenarse y eliminar CO2.", "Filtrar la orina en los riñones."], correct: 1, explain: "¡Exacto! La circulación menor conecta corazón y pulmones para recargar oxígeno y soltar dióxido de carbono." },
     { id: "m2_q7", mission: 2, idx: 7, type: "mc", title: "Clasificación de Hábitos Saludables", text: "¿Cuál combinación contiene ÚNICAMENTE hábitos saludables para la nutrición?", options: ["Beber 1,5L agua al día, ventilar el aula y hacer deporte.", "Fumar, beber refrescos azucarados y no ducharse.", "Comer solo hamburguesas y no salir."], correct: 0, explain: "¡Así se habla! La hidratación, la ventilación del aire y el ejercicio garantizan el rendimiento óptimo del corazón y riñones." },
-    { id: "m2_q8", mission: 2, idx: 8, type: "match", title: "Glándulas Anejas", text: "Relaciona la glándula con su secreción:", pairs: [{ key: "Hígado", correct: "Bilis (para grasas)" }, { key: "Páncreas", correct: "Jugo pancreático" }, { key: "Glándulas salivales", correct: "Saliva" }], optionsList: ["Bilis (para grasas)", "Jugo pancreático", "Saliva"], explain: "¡Exacto! La bilis del hígado digiere grasas, el jugo pancreático actúa en el intestino y la saliva descompone el almidón." },
+    { id: "m2_q8", mission: 2, idx: 8, type: "match", title: "Glándulas Anejas", text: "Relaciona la glándula con la sustancia que secreta:", pairs: [{ key: "Hígado", correct: "Bilis (para grasas)" }, { key: "Páncreas", correct: "Jugo pancreático" }, { key: "Glándulas salivales", correct: "Saliva" }], optionsList: ["Bilis (para grasas)", "Jugo pancreático", "Saliva"], explain: "¡Exacto! La bilis del hígado digiere grasas, el jugo pancreático actúa en el intestino y la saliva descompone el almidón." },
     { id: "m2_q9", mission: 2, idx: 9, type: "mc", title: "Movimientos Cardíacos", text: "¿Cómo se llama la fase en la que el corazón se relaja y se llena de sangre procedente de las venas?", options: ["Sístole", "Diástole", "Hematosis"], correct: 1, explain: "¡Muy bien! En la diástole el corazón se dilata y se llena. En la sístole se contrae con fuerza para impulsar la sangre." },
     { id: "m2_q10", mission: 2, idx: 10, type: "mc", title: "Órganos del Aparato Respiratorio", text: "¿A qué aparato pertenecen la tráquea, los bronquios y los alveolos?", options: ["Aparato Excretor", "Aparato Respiratorio", "Aparato Circulatorio"], correct: 1, explain: "¡Correcto! Todos estos conductos y estructuras forman el aparato respiratorio." },
 
-    // NIVEL 3 (VISUAL)
+    // NIVEL 3: ANATOMÍA VISUAL
     { id: "m3_q1", mission: 3, idx: 1, type: "visual_mc", title: "Aparato Respiratorio", imgKey: "respiratorio", text: "Observa la figura del aparato respiratorio. ¿Qué órgano señala la etiqueta verde en la parte inferior del cuello?", options: ["La Faringe", "La Tráquea", "Los Pulmones"], correct: 1, explain: "¡Correcto! La etiqueta verde señala la Tráquea, el conducto anillado que desciende hacia el pecho." },
     { id: "m3_q2", mission: 3, idx: 2, type: "visual_mc", title: "Circuitos de la Circulación", imgKey: "circulatorio", text: "Observa el mapa de circulación. El circuito superior en rojo y azul que conecta corazón y pulmones es:", options: ["La Circulación Pulmonar (Menor)", "La Circulación General (Mayor)", "El Aparato Excretor"], correct: 0, explain: "¡Exacto! El bucle superior es el circuito pulmonar donde la sangre se oxigena en los pulmones." },
     { id: "m3_q3", mission: 3, idx: 3, type: "visual_mc", title: "Anatomía del Corazón", imgKey: "corazon_flujo", text: "Observa las flechas del flujo cardíaco. Las cavidades superiores que reciben sangre de las venas son:", options: ["Los Ventrículos", "Las Aurículas", "Las Válvulas"], correct: 1, explain: "¡Así es! Las aurículas (derecha e izquierda) están arriba y reciben la sangre que entra al corazón." },
@@ -561,17 +603,17 @@ const QUEST_DATA = [
     { id: "m3_q9", mission: 3, idx: 9, type: "visual_mc", title: "Tubo Digestivo Superior", imgKey: "digestivo_color", text: "¿Qué tubo muscular conecta la faringe con el estómago en la imagen?", options: ["La Tráquea", "El Esófago", "El Uréter"], correct: 1, explain: "¡Correcto! El esófago conduce el bolo alimenticio mediante movimientos peristálticos hacia el estómago." },
     { id: "m3_q10", mission: 3, idx: 10, type: "visual_mc", title: "Red de Capilares", imgKey: "circulatorio", text: "En el dibujo del cuerpo completo, la red de vasos sanguíneos llega hasta la punta de los dedos. ¿Qué vasos tan finos forman esta red?", options: ["Los Capilares sanguíneos", "La Arteria Aorta", "Los Uréteres"], correct: 0, explain: "¡Genial! Los capilares forman una tupida red microscópica que llega a cada célula." },
 
-    // NIVEL 4
-    { id: "m4_q1", mission: 4, idx: 1, type: "mc", title: "Proceso de Hematosis Alveolar", text: "¿Cómo se realiza exactamente el intercambio de gases en los alveolos pulmonares?", options: ["El O2 del aire pasa a los capilares y el CO2 de la sangre pasa al alveolo por difusión.", "El aire se convierte en agua.", "La sangre se limpia en el estómago."], correct: 0, explain: "¡Explicación perfecta! Debido a la diferencia de concentración, el O2 atraviesa la pared alveolar hacia los glóbulos rojos, mientras el CO2 realiza el camino inverso para ser expulsado." },
-    { id: "m4_q2", mission: 4, idx: 2, type: "mc", title: "Secuencia Completa de la Digestión", text: "Selecciona el orden CRONOLÓGICO correcto de los estados del alimento a lo largo del tubo digestivo:", options: ["Alimento ➔ Bolo alimenticio (boca) ➔ Quimo (estómago) ➔ Quilo (intestino delgado) ➔ Heces (intestino grueso)", "Alimento ➔ Quilo ➔ Quimo ➔ Bolo alimenticio", "Alimento ➔ Orina ➔ Quimo ➔ Bilis"], correct: 0, explain: "¡Proceso impecable! 1º Masticación (Bolo) ➔ 2º Jugos gástricos (Quimo) ➔ 3º Bilis y jugo pancreático (Quilo) ➔ 4º Absorción y heces." },
-    { id: "m4_q3", mission: 4, idx: 3, type: "mc", title: "El Recorrido de la Sangre (Circulación Doble)", text: "Sigue la pista de un glóbulo rojo cargado de CO2 que llega de la pierna al corazón. ¿Cuál es su recorrido?", options: ["Vena cava ➔ Aurícula dcha ➔ Ventrículo dcho ➔ Arteria pulmonar ➔ Pulmones ➔ Venas pulmonares ➔ Aurícula izq ➔ Ventrículo izq ➔ Aorta", "Aorta ➔ Ventrículo izq ➔ Pulmones ➔ Hígado", "Vena cava ➔ Vejiga ➔ Riñón ➔ Corazón"], correct: 0, explain: "¡Brillante recorrido! Pasa primero por el lado derecho hacia los pulmones para limpiarse y regresa al lado izquierdo para impulsarse a todo el cuerpo por la arteria Aorta." },
-    { id: "m4_q4", mission: 4, idx: 4, type: "mc", title: "Mecanismo de Filtración Renal", text: "¿Cómo convierten los riñones la sangre filtrada en orina?", options: ["Filtran el plasma reteniendo sustancias útiles y concentran el agua sobrante con desechos (urea y sales).", "Mezclan la sangre con bilis.", "Evaporan la sangre."], correct: 0, explain: "¡Exacto! Los nefrones renales filtran la sangre de forma continua: devuelven a la circulación los nutrientes útiles y expulsan las toxinas disueltas en agua." },
-    { id: "m4_q5", mission: 4, idx: 5, type: "mc", title: "Mecanismo de la Inhalación", text: "¿Por qué entra aire a nuestros pulmones cuando el diafragma baja?", options: ["Porque aumenta el volumen torácico, disminuyendo la presión interna y haciendo que el aire exterior entre empujado por la presión atmosférica.", "Porque el estómago empuja el aire.", "Porque los pulmones son globos eléctricos."], correct: 0, explain: "¡Fundamentación científica de 10! El aumento de volumen torácico genera una presión negativa interna que fuerza la entrada del aire." },
-    { id: "m4_q6", mission: 4, idx: 6, type: "mc", title: "Doble Función del Sudor", text: "¿Qué dos funciones vitales realiza el sudor fabricado en las glándulas sudoríparas?", options: ["Excretora (elimina desechos) y Termorreguladora (al evaporarse en la piel absorbe calor y la enfría).", "Digestiva y Respiratoria.", "Circulatoria y Auditiva."], correct: 0, explain: "¡Excelente! El sudor elimina toxinas y evita que la temperatura corporal se eleve en exceso al evaporarse sobre la piel." },
-    { id: "m4_q7", mission: 4, idx: 7, type: "mc", title: "Absorción y Distribución de Nutrientes", text: "¿Cómo viajan los nutrientes desde el intestino hasta las células del cuerpo?", options: ["Atraviesan las vellosidades del intestino delgado, entran a los capilares y el corazón los bombea por la sangre.", "Van flotando por el aire.", "Bajan por los uréteres."], correct: 0, explain: "¡Conexión de sistemas perfecta! El aparato digestivo aporta los nutrientes a la sangre y el circulatorio se encarga de su distribución a cada tejido." },
-    { id: "m4_q8", mission: 4, idx: 8, type: "mc", title: "Efectos Nocivos del Tabaquismo", text: "¿Por qué el humo del tabaco destruye la capacidad respiratoria?", options: ["Porque el alquitrán destruye los cilios y rompe las paredes alveolares, reduciendo la superficie de intercambio de oxígeno.", "Porque convierte la sangre en bilis.", "Porque bloquea los uréteres."], correct: 0, explain: "¡Argumentación médica intachable! El tabaco destruye las paredes de los alveolos pulmonares, reduciendo drásticamente la captación de oxígeno." },
-    { id: "m4_q9", mission: 4, idx: 9, type: "mc", title: "El Papel de las Válvulas Venosas", text: "¿Por qué las venas de las piernas tienen válvulas semilunares en su interior?", options: ["Para impedir que la sangre refluya hacia abajo debido a la gravedad mientras sube de vuelta al corazón.", "Para fabricar glóbulos blancos.", "Para enfriar la sangre."], correct: 0, explain: "¡Mecánica cardiovascular brillante! Como la sangre de las piernas sube contra la gravedad, las válvulas de las venas actúan como compuertas antirretorno." },
-    { id: "m4_q10", mission: 4, idx: 10, type: "mc", title: "Integración Total de la Nutrición", text: "Sintetiza la colaboración de los 4 aparatos en la función de nutrición:", options: ["Digestivo (aporta nutrientes) + Respiratorio (aporta O2) ➔ Circulatorio (los transporta a células) ➔ Excretor (elimina residuos por orina/sudor).", "Digestivo y Excretor no se relacionan con la sangre.", "La nutrición la realiza solo el circulatorio."], correct: 0, explain: "¡SÍNTESIS MAESTRA! Has demostrado un dominio completo de la Nutrición Humana. ¡Felicidades, Máster Bio-Médico!" }
+    // NIVEL 4: PROCESOS (OPCIONES DESARROLLADAS Y VARIADAS)
+    { id: "m4_q1", mission: 4, idx: 1, type: "mc", title: "Proceso de Hematosis Alveolar", text: "¿Cómo se realiza exactamente el intercambio de gases en los alveolos pulmonares?", options: ["El aire se transforma en sangre dentro del estómago gracias a los ácidos gástricos.", "El O2 del aire atraviesa la pared del alveolo hacia los capilares y el CO2 de la sangre pasa al alveolo para ser expulsado.", "El CO2 entra por las arterias pulmonares y el O2 es impulsado directamente hacia la uretra."], correct: 1, explain: "¡Explicación perfecta! Debido a la diferencia de concentración, el O2 atraviesa la fina pared alveolar hacia los glóbulos rojos, mientras el CO2 realiza el camino inverso para ser expulsado." },
+    { id: "m4_q2", mission: 4, idx: 2, type: "mc", title: "Secuencia Completa de la Digestión", text: "Selecciona el orden CRONOLÓGICO correcto de los estados del alimento a lo largo del tubo digestivo:", options: ["Alimento ➔ Bolo alimenticio (Boca) ➔ Quimo (Estómago) ➔ Quilo (Intestino delgado) ➔ Heces (Intestino grueso)", "Alimento ➔ Quilo (Estómago) ➔ Bolo alimenticio (Intestino delgado) ➔ Quimo (Boca) ➔ Heces (Ano)", "Alimento ➔ Quimo (Hígado) ➔ Bolo alimenticio (Páncreas) ➔ Bilis (Estómago) ➔ Orina (Vejiga)"], correct: 0, explain: "¡Proceso impecable! 1º Masticación y saliva (Bolo) ➔ 2º Jugos gástricos (Quimo) ➔ 3º Bilis y jugo pancreático (Quilo) ➔ 4º Absorción y restos no digeridos." },
+    { id: "m4_q3", mission: 4, idx: 3, type: "mc", title: "El Recorrido de la Sangre (Circulación Doble)", text: "Sigue la pista de un glóbulo rojo cargado de CO2 que llega de la pierna al corazón. ¿Cuál es su recorrido correcto?", options: ["Aorta ➔ Ventrículo izquierdo ➔ Pulmones ➔ Aurícula derecha ➔ Arteria pulmonar ➔ Células corporales.", "Vena cava ➔ Aurícula derecha ➔ Ventrículo derecho ➔ Arteria pulmonar ➔ Pulmones ➔ Venas pulmonares ➔ Aurícula izquierda ➔ Ventrículo izquierdo ➔ Aorta.", "Vena cava ➔ Riñones ➔ Aurícula izquierda ➔ Uréteres ➔ Ventrículo derecho ➔ Venas pulmonares ➔ Aorta."], correct: 1, explain: "¡Brillante recorrido! Pasa primero por el lado derecho del corazón hacia los pulmones para limpiarse y regresa al lado izquierdo para impulsarse por la arteria Aorta." },
+    { id: "m4_q4", mission: 4, idx: 4, type: "mc", title: "Mecanismo de Filtración Renal", text: "¿Cómo convierten los riñones la sangre filtrada en orina?", options: ["Mezclan la sangre con bilis y jugos pancreáticos para disolver los azúcares y eliminar la materia sólida por las arterias.", "Evaporan el agua del plasma mediante la temperatura corporal para expulsar los gases tóxicos por las arterias renales.", "Filtran el plasma reteniendo sustancias útiles y concentran el agua sobrante junto con los desechos en forma de orina."], correct: 2, explain: "¡Exacto! Los nefrones renales filtran la sangre continuamente: devuelven a la circulación las sustancias útiles y expulsan las toxinas disueltas en agua." },
+    { id: "m4_q5", mission: 4, idx: 5, type: "mc", title: "Mecanismo de la Inhalación", text: "¿Por qué entra aire a nuestros pulmones cuando el diafragma baja?", options: ["El diafragma se contrae y baja, aumentando el volumen del tórax y reduciendo la presión interna para que el aire exterior entre libremente.", "El diafragma se relaja y sube, comprimiendo los pulmones para empujar el aire hacia las fosas nasales con fuerza muscular.", "Los músculos abdominales se contraen empujando el estómago, lo cual absorbe el aire atmosférico hacia las glándulas sudoríparas."], correct: 0, explain: "¡Fundamentación científica de 10! El aumento de volumen torácico genera una presión negativa interna que fuerza la entrada del aire del exterior." },
+    { id: "m4_q6", mission: 4, idx: 6, type: "mc", title: "Doble Función del Sudor", text: "¿Qué dos funciones vitales realiza el sudor fabricado en las glándulas sudoríparas?", options: ["Función digestiva para descomponer grasas subcutáneas y función respiratoria para captar oxígeno a través de la piel.", "Función excretora para eliminar sustancias de desecho y función termorreguladora para refrescar el cuerpo al evaporarse.", "Función circulatoria para impulsar la sangre por los capilares y función inmunitaria para producir glóbulos rojos."], correct: 1, explain: "¡Excelente! El sudor elimina toxinas y evita que la temperatura corporal se eleve en exceso al evaporarse sobre la superficie de la piel." },
+    { id: "m4_q7", mission: 4, idx: 7, type: "mc", title: "Absorción y Distribución de Nutrientes", text: "¿Cómo viajan los nutrientes desde el intestino hasta las células del cuerpo?", options: ["Los nutrientes se convierten en vapor en el intestino grueso y ascienden directamente hasta el cerebro a través de la tráquea.", "Los nutrientes pasan por los uréteres hacia la vejiga, donde la sangre los recoge antes de ser bombeados por el corazón.", "Los nutrientes atraviesan las vellosidades del intestino delgado hacia los capilares y el corazón los distribuye por todo el organismo."], correct: 2, explain: "¡Conexión de sistemas perfecta! El aparato digestivo aporta los nutrientes a la sangre y el circulatorio se encarga de su distribución a cada tejido." },
+    { id: "m4_q8", mission: 4, idx: 8, type: "mc", title: "Efectos Nocivos del Tabaquismo", text: "¿Por qué el humo del tabaco destruye la capacidad respiratoria?", options: ["El humo del tabaco destruye los cilios y rompe las paredes alveolares, reduciendo gravemente la superficie útil para el intercambio de oxígeno.", "El humo del tabaco bloquea la producción de bilis en el hígado, impidiendo que el aparato digestivo absorba las vitaminas solubles.", "El humo del tabaco aumenta excesivamente el número de plaquetas en las venas pulmonares, haciendo que los bronquios se vuelvan rígidos."], correct: 0, explain: "¡Argumentación médica intachable! El tabaco destruye las paredes de los alveolos pulmonares, reduciendo drásticamente la captación de oxígeno." },
+    { id: "m4_q9", mission: 4, idx: 9, type: "mc", title: "El Papel de las Válvulas Venosas", text: "¿Por qué las venas de las piernas tienen válvulas semilunares en su interior?", options: ["Impiden que la sangre venosa se mezcle con el sudor en las glándulas de las piernas durante el ejercicio físico intencionadamente.", "Evitan que la sangre retroceda hacia abajo por efecto de la gravedad mientras asciende de vuelta hacia el corazón.", "Aceleran el ritmo del pulso arterial para que la sangre llegue más rápido a los alveolos pulmonares."], correct: 1, explain: "¡Mecánica cardiovascular brillante! Como la sangre de las piernas sube contra la gravedad, las válvulas de las venas actúan como compuertas antirretorno." },
+    { id: "m4_q10", mission: 4, idx: 10, type: "mc", title: "Integración Total de la Nutrición", text: "Sintetiza la colaboración de los 4 aparatos en la función de nutrición:", options: ["El aparato digestivo aporta nutrientes y el respiratorio O2; el circulatorio los distribuye y el excretor elimina los desechos de la sangre.", "El aparato circulatorio fabrica los alimentos, el respiratorio los digiere en la tráquea y el excretor absorbe el oxígeno restante.", "El aparato excretor absorbe los nutrientes del estómago, el digestivo filtra la orina y el respiratorio transporta la sangre oxigenada."], correct: 0, explain: "¡SÍNTESIS MAESTRA! Has demostrado un dominio completo de la Nutrición Humana. ¡Felicidades, Máster Bio-Médico!" }
 ];
 
 let currentMission = 1, userAnswers = {}, userXp = 0, completedQuests = new Set();
@@ -612,12 +654,16 @@ function renderQuests() {
         } else if (q.type === 'match') {
             html += `<div class="match-grid">`;
             q.pairs.forEach((pair, pIdx) => {
+                let optionsHtml = '<option value="">-- Selecciona Correspondencia --</option>';
+                q.optionsList.forEach(optVal => {
+                    optionsHtml += `<option value="${optVal}">${optVal}</option>`;
+                });
+
                 html += `
                     <div style="font-weight:700; color:var(--cyber-cyan); display:flex; align-items:center;">${pair.key} ➔</div>
                     <div>
                         <select class="select-custom" id="sel-${q.id}-${pIdx}">
-                            <option value="">-- Selecciona Correspondencia --</option>
-                            ${q.optionsList.map(o => `<option value="\\({o}">\\){o}</option>`).join('')}
+                            ${optionsHtml}
                         </select>
                     </div>
                 `;
@@ -650,6 +696,7 @@ function switchMission(mNum) {
 }
 
 function selectMcOption(qId, oIdx) {
+    initAudio();
     const quest = QUEST_DATA.find(q => q.id === qId);
     quest.options.forEach((_, idx) => {
         document.getElementById(`btn-${qId}-${idx}`).classList.remove('selected');
@@ -683,11 +730,23 @@ function verifyQuest(qId) {
         });
     } else if (quest.type === 'match') {
         let allCorrect = true;
+        let selectedAll = true;
         quest.pairs.forEach((pair, pIdx) => {
             const sel = document.getElementById(`sel-${qId}-${pIdx}`);
+            if (!sel.value) selectedAll = false;
             if (sel.value !== pair.correct) allCorrect = false;
+        });
+
+        if (!selectedAll) {
+            alert("⚠️ Por favor, responde a todos los desplegables antes de comprobar.");
+            return;
+        }
+
+        quest.pairs.forEach((_, pIdx) => {
+            const sel = document.getElementById(`sel-${qId}-${pIdx}`);
             sel.disabled = true;
         });
+
         isCorrect = allCorrect;
     }
 
@@ -749,6 +808,10 @@ function closeModal() {
     document.getElementById('level-modal').style.display = 'none';
     if (currentMission < 4) switchMission(currentMission + 1);
 }
+
+document.body.addEventListener('click', () => {
+    initAudio();
+}, { once: true });
 
 window.onload = () => { renderQuests(); };
 </script>
