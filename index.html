@@ -58,7 +58,7 @@
             box-shadow: var(--border-glow);
             border-radius: var(--card-radius);
             padding: 20px 30px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -118,6 +118,25 @@
         .audio-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 20px rgba(188, 19, 254, 0.8);
+        }
+
+        /* BANNER DE LA MASCOTA */
+        .banner-container {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 25px;
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            border: 2px solid var(--cyber-cyan);
+            box-shadow: var(--border-glow);
+            background: rgba(0,0,0,0.5);
+        }
+
+        .banner-img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            display: block;
         }
 
         .game-wrapper {
@@ -362,14 +381,32 @@
             background: rgba(255, 0, 127, 0.08);
         }
 
-        .maestra-msg {
+        /* MAESTRA Mª LUZ & NUTRIBOT AVATAR */
+        .maestra-msg-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 234, 0, 0.1);
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px dashed var(--cyber-yellow);
+        }
+
+        .nutribot-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--cyber-yellow);
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(255, 234, 0, 0.5);
+        }
+
+        .maestra-text {
             font-style: italic;
             color: var(--cyber-yellow);
             font-weight: 700;
-            background: rgba(255, 234, 0, 0.1);
-            padding: 8px 14px;
-            border-radius: 8px;
-            border: 1px dashed var(--cyber-yellow);
+            font-size: 0.98rem;
         }
 
         .modal-overlay {
@@ -407,6 +444,11 @@
         <div class="stat-box">🏆 Rango: <span id="rank-val" class="stat-value" style="color:var(--cyber-cyan);">Recluta</span></div>
     </div>
     <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()">🎵 MÚSICA ON</button>
+</div>
+
+<!-- BANNER DE LA MASCOTA -->
+<div class="banner-container">
+    <img src="bio_cyber_mascot.png" alt="BIO-CYBER 2050 Banner" class="banner-img">
 </div>
 
 <div class="game-wrapper">
@@ -469,9 +511,9 @@ const ENCOURAGE_MSGS = [
     "🚀 ¡No te rindas! Revisa la pista de Mª Luz y verás qué claro lo ves ahora."
 ];
 
-// MÚSICA CONTINUA (WEB AUDIO API)
+// MÚSICA CONTINUA E INMERSIVA (WEB AUDIO API)
 let audioCtx = null, bgmGain = null, isAudioPlaying = false, bgmTimer = null;
-const notes = [220, 261.63, 329.63, 392.00, 440, 523.25, 659.25];
+const synthNotes = [220, 261.63, 329.63, 392.00, 440, 523.25, 659.25, 587.33];
 
 function initAudio() {
     if (!audioCtx) {
@@ -498,33 +540,38 @@ function toggleAudio() {
 
 function startBGM() {
     if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
     if (bgmTimer) clearInterval(bgmTimer);
 
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    bgmGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
     bgmGain.connect(audioCtx.destination);
 
     let noteIdx = 0;
     bgmTimer = setInterval(() => {
         if (!isAudioPlaying || !audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
         const osc = audioCtx.createOscillator();
         const noteGain = audioCtx.createGain();
         osc.type = (noteIdx % 2 === 0) ? 'sine' : 'triangle';
         
-        const freq = notes[noteIdx % notes.length];
+        const freq = synthNotes[noteIdx % synthNotes.length];
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-        noteGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        noteGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
 
         osc.connect(noteGain);
         noteGain.connect(bgmGain);
 
         osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.6);
+        osc.stop(audioCtx.currentTime + 0.45);
 
         noteIdx++;
-    }, 450);
+    }, 380);
 }
 
 function stopBGM() {
@@ -565,7 +612,7 @@ function playSfx(type) {
     }
 }
 
-// BATERÍA COMPLETA DE PREGUNTAS (40 DESAFÍOS)
+// BATERÍA COMPLETA DE PREGUNTAS (40 DESAFÍOS DIVERSOS)
 const QUEST_DATA = [
     // NIVEL 1: CONCEPTOS
     { id: "m1_q1", mission: 1, idx: 1, type: "mc", title: "Diferencia entre Nutrición y Alimentación", text: "¿Cuál es la afirmación correcta sobre la nutrición humana?", options: ["La nutrición es solo masticar y tragar los alimentos.", "La nutrición engloba la digestión, respiración, circulación y excreción.", "La alimentación es un proceso involuntario de las células."], correct: 1, explain: "¡Exacto! La nutrición es el conjunto de procesos (digestión, respiración, circulación y excreción) mediante los cuales obtenemos energía y materiales de los alimentos." },
@@ -603,7 +650,7 @@ const QUEST_DATA = [
     { id: "m3_q9", mission: 3, idx: 9, type: "visual_mc", title: "Tubo Digestivo Superior", imgKey: "digestivo_color", text: "¿Qué tubo muscular conecta la faringe con el estómago en la imagen?", options: ["La Tráquea", "El Esófago", "El Uréter"], correct: 1, explain: "¡Correcto! El esófago conduce el bolo alimenticio mediante movimientos peristálticos hacia el estómago." },
     { id: "m3_q10", mission: 3, idx: 10, type: "visual_mc", title: "Red de Capilares", imgKey: "circulatorio", text: "En el dibujo del cuerpo completo, la red de vasos sanguíneos llega hasta la punta de los dedos. ¿Qué vasos tan finos forman esta red?", options: ["Los Capilares sanguíneos", "La Arteria Aorta", "Los Uréteres"], correct: 0, explain: "¡Genial! Los capilares forman una tupida red microscópica que llega a cada célula." },
 
-    // NIVEL 4: PROCESOS (OPCIONES DESARROLLADAS Y VARIADAS)
+    // NIVEL 4: PROCESOS
     { id: "m4_q1", mission: 4, idx: 1, type: "mc", title: "Proceso de Hematosis Alveolar", text: "¿Cómo se realiza exactamente el intercambio de gases en los alveolos pulmonares?", options: ["El aire se transforma en sangre dentro del estómago gracias a los ácidos gástricos.", "El O2 del aire atraviesa la pared del alveolo hacia los capilares y el CO2 de la sangre pasa al alveolo para ser expulsado.", "El CO2 entra por las arterias pulmonares y el O2 es impulsado directamente hacia la uretra."], correct: 1, explain: "¡Explicación perfecta! Debido a la diferencia de concentración, el O2 atraviesa la fina pared alveolar hacia los glóbulos rojos, mientras el CO2 realiza el camino inverso para ser expulsado." },
     { id: "m4_q2", mission: 4, idx: 2, type: "mc", title: "Secuencia Completa de la Digestión", text: "Selecciona el orden CRONOLÓGICO correcto de los estados del alimento a lo largo del tubo digestivo:", options: ["Alimento ➔ Bolo alimenticio (Boca) ➔ Quimo (Estómago) ➔ Quilo (Intestino delgado) ➔ Heces (Intestino grueso)", "Alimento ➔ Quilo (Estómago) ➔ Bolo alimenticio (Intestino delgado) ➔ Quimo (Boca) ➔ Heces (Ano)", "Alimento ➔ Quimo (Hígado) ➔ Bolo alimenticio (Páncreas) ➔ Bilis (Estómago) ➔ Orina (Vejiga)"], correct: 0, explain: "¡Proceso impecable! 1º Masticación y saliva (Bolo) ➔ 2º Jugos gástricos (Quimo) ➔ 3º Bilis y jugo pancreático (Quilo) ➔ 4º Absorción y restos no digeridos." },
     { id: "m4_q3", mission: 4, idx: 3, type: "mc", title: "El Recorrido de la Sangre (Circulación Doble)", text: "Sigue la pista de un glóbulo rojo cargado de CO2 que llega de la pierna al corazón. ¿Cuál es su recorrido correcto?", options: ["Aorta ➔ Ventrículo izquierdo ➔ Pulmones ➔ Aurícula derecha ➔ Arteria pulmonar ➔ Células corporales.", "Vena cava ➔ Aurícula derecha ➔ Ventrículo derecho ➔ Arteria pulmonar ➔ Pulmones ➔ Venas pulmonares ➔ Aurícula izquierda ➔ Ventrículo izquierdo ➔ Aorta.", "Vena cava ➔ Riñones ➔ Aurícula izquierda ➔ Uréteres ➔ Ventrículo derecho ➔ Venas pulmonares ➔ Aorta."], correct: 1, explain: "¡Brillante recorrido! Pasa primero por el lado derecho del corazón hacia los pulmones para limpiarse y regresa al lado izquierdo para impulsarse por la arteria Aorta." },
@@ -676,7 +723,7 @@ function renderQuests() {
                 <button class="cyber-btn" id="check-${q.id}" onclick="verifyQuest('${q.id}')">🔍 COMPROBAR & ANALIZAR</button>
             </div>
             <div class="feedback-box" id="fb-${q.id}">
-                <div class="maestra-msg" id="msg-${q.id}"></div>
+                <div id="msg-${q.id}"></div>
                 <div id="exp-${q.id}"></div>
             </div>
         `;
@@ -753,10 +800,26 @@ function verifyQuest(qId) {
     checkBtn.disabled = true;
     fbBox.style.display = 'flex';
 
+    // APARICIÓN OCASIONAL DE Mª LUZ Y NUTRIBOT (40% DE PROBABILIDAD)
+    const showMaestra = Math.random() < 0.4;
+
     if (isCorrect) {
         playSfx('correct');
         fbBox.className = 'feedback-box correct';
-        msgEl.innerHTML = PRAISE_MSGS[Math.floor(Math.random() * PRAISE_MSGS.length)];
+        if (showMaestra) {
+            const randomMsg = PRAISE_MSGS[Math.floor(Math.random() * PRAISE_MSGS.length)];
+            msgEl.innerHTML = `
+                <div class="maestra-msg-container">
+                    <img src="bio_cyber_mascot.png" class="nutribot-avatar" alt="NutriBot">
+                    <div class="maestra-text">${randomMsg}</div>
+                </div>
+            `;
+            msgEl.style.display = 'block';
+        } else {
+            msgEl.innerHTML = '';
+            msgEl.style.display = 'none';
+        }
+
         if (!completedQuests.has(qId)) {
             completedQuests.add(qId);
             userXp += 100;
@@ -766,7 +829,19 @@ function verifyQuest(qId) {
     } else {
         playSfx('wrong');
         fbBox.className = 'feedback-box wrong';
-        msgEl.innerHTML = ENCOURAGE_MSGS[Math.floor(Math.random() * ENCOURAGE_MSGS.length)];
+        if (showMaestra) {
+            const randomMsg = ENCOURAGE_MSGS[Math.floor(Math.random() * ENCOURAGE_MSGS.length)];
+            msgEl.innerHTML = `
+                <div class="maestra-msg-container">
+                    <img src="bio_cyber_mascot.png" class="nutribot-avatar" alt="NutriBot">
+                    <div class="maestra-text">${randomMsg}</div>
+                </div>
+            `;
+            msgEl.style.display = 'block';
+        } else {
+            msgEl.innerHTML = '';
+            msgEl.style.display = 'none';
+        }
     }
 
     expEl.innerHTML = `<strong>Análisis Razonado:</strong> ${quest.explain}`;
@@ -799,7 +874,7 @@ function checkMissionCompletion() {
     if (mDone === 10) {
         playSfx('levelup');
         const modal = document.getElementById('level-modal');
-        document.getElementById('modal-desc').innerHTML = `🌟 ¡Has completado los 10 desafíos del <strong>NIVEL ${currentMission}</strong>!<br><br>Tu Maestra Mª Luz te felicita efusivamente por tu constancia y rigor científico. ¡Sigue así para lograr el rango de Máster Bio-Médico!`;
+        document.getElementById('modal-desc').innerHTML = `🌟 ¡Has completado los 10 desafíos del <strong>NIVEL ${currentMission}</strong>!<br><br>Tu Maestra Mª Luz y NutriBot te felicitan efusivamente por tu constancia y rigor científico. ¡Sigue así para lograr el rango de Máster Bio-Médico!`;
         modal.style.display = 'flex';
     }
 }
@@ -809,6 +884,7 @@ function closeModal() {
     if (currentMission < 4) switchMission(currentMission + 1);
 }
 
+// RESUMIR AUDIO AL HACER CUALQUIER CLIC
 document.body.addEventListener('click', () => {
     initAudio();
 }, { once: true });
